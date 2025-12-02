@@ -19,6 +19,15 @@ fetch(chrome.runtime.getURL("resources/data.json"))
       (e.className = "company"), (e.textContent = t), tooltip.appendChild(e);
     });
     
+    // Build company -> list of LeetCode URLs
+    const companyUrlMap = {};
+    t.forEach(entry => {
+      entry.companies.forEach(company => {
+        if (!companyUrlMap[company]) companyUrlMap[company] = [];
+        companyUrlMap[company].push(entry.url);
+      });
+    });
+    
     // Add expansion overlay for all company names
     setTimeout(() => {
       const expansionOverlay = document.createElement('div');
@@ -41,6 +50,17 @@ fetch(chrome.runtime.getURL("resources/data.json"))
           
           expansionOverlay.style.left = centerX + 'px';
           expansionOverlay.style.top = centerY + 'px';
+        });
+
+        //for openig url
+        company.addEventListener('click', () => {
+          const companyName = company.getAttribute('data-full-text');
+          const urls = companyUrlMap[companyName];
+
+          if (!urls || urls.length === 0) return;
+
+          const randomUrl = urls[Math.floor(Math.random() * urls.length)];
+          window.location.href = randomUrl;
         });
         
         company.addEventListener('mouseleave', () => {
