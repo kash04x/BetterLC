@@ -12,13 +12,6 @@ const currentUrl = window.location.href,
 fetch(chrome.runtime.getURL("resources/data.json"))
   .then((t) => t.json())
   .then((t) => {
-    const e = t.find((t) => t.url === baseUrl),
-      o = e ? e.companies : ["Data Unavailable"];
-    o.forEach((t) => {
-      const e = document.createElement("div");
-      (e.className = "company"), (e.textContent = t), tooltip.appendChild(e);
-    });
-    
     // Build company -> list of LeetCode URLs
     const companyUrlMap = {};
     t.forEach(entry => {
@@ -26,6 +19,16 @@ fetch(chrome.runtime.getURL("resources/data.json"))
         if (!companyUrlMap[company]) companyUrlMap[company] = [];
         companyUrlMap[company].push(entry.url);
       });
+    });
+    // company list
+    const e = t.find((t) => t.url === baseUrl), o = e ? e.companies : ["Data Unavailable"];
+    o.forEach((t) => {
+      const e = document.createElement("div");
+      e.className = "company";
+      const count = companyUrlMap[t] ? companyUrlMap[t].length : 0;
+      e.textContent = `${t} (${count})`;
+      e.setAttribute("key", t); // keep original name
+      tooltip.appendChild(e);
     });
     
     // Add expansion overlay for all company names
@@ -54,11 +57,9 @@ fetch(chrome.runtime.getURL("resources/data.json"))
 
         //for openig url
         company.addEventListener('click', () => {
-          const companyName = company.getAttribute('data-full-text');
+          const companyName = company.getAttribute('key');
           const urls = companyUrlMap[companyName];
-
           if (!urls || urls.length === 0) return;
-
           const randomUrl = urls[Math.floor(Math.random() * urls.length)];
           window.location.href = randomUrl;
         });
