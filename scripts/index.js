@@ -7,8 +7,14 @@ const tooltip = document.createElement("div");
   button.appendChild(img),
   button.appendChild(tooltip),
   document.body.appendChild(button);
-const currentUrl = window.location.href,
-  baseUrl = currentUrl.match(/https:\/\/leetcode\.com\/problems\/[^\/]+\//)[0];
+
+function updateCompanies(currentUrl){
+  const match = currentUrl.match(/https:\/\/leetcode\.com\/problems\/[^\/]+\//);
+  if(!match) return;
+  const baseUrl = match[0];
+  
+  tooltip.innerHTML = '';
+
 fetch(chrome.runtime.getURL("resources/data.json"))
   .then((t) => t.json())
   .then((t) => {
@@ -21,9 +27,12 @@ fetch(chrome.runtime.getURL("resources/data.json"))
     
     // Add expansion overlay for all company names
     setTimeout(() => {
-      const expansionOverlay = document.createElement('div');
-      expansionOverlay.className = 'company-expansion-overlay';
-      document.body.appendChild(expansionOverlay);
+      let expansionOverlay = document.querySelector('.company-expansion-overlay');
+      if (!expansionOverlay) {
+        expansionOverlay = document.createElement('div');
+        expansionOverlay.className = 'company-expansion-overlay';
+        document.body.appendChild(expansionOverlay);
+      }
       
       document.querySelectorAll('.company').forEach(company => {
         company.setAttribute('data-full-text', company.textContent);
@@ -50,3 +59,13 @@ fetch(chrome.runtime.getURL("resources/data.json"))
     }, 100);
   })
   .catch((t) => console.error("Error fetching JSON:", t));
+}
+updateCompanies(window.location.href);
+
+let lastUrl = window.location.href;
+new MutationObserver(()=> {
+  if(window.location.href !== lastUrl){
+    lastUrl = window.location.href;
+    updateCompanies(lastUrl);
+  }
+}).observe(document, {subtree: true, childList: true})
