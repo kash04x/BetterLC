@@ -63,9 +63,11 @@ fetch(chrome.runtime.getURL("resources/data.json"))
 updateCompanies(window.location.href);
 
 let lastUrl = window.location.href;
+let debounceTimer;
 new MutationObserver(()=> {
-  if(window.location.href !== lastUrl){
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {if(window.location.href !== lastUrl){
     lastUrl = window.location.href;
     updateCompanies(lastUrl);
-  }
+  }}, 250)
 }).observe(document, {subtree: true, childList: true})
