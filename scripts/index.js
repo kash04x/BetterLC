@@ -15,17 +15,20 @@ function updateCompanies(currentUrl){
   
   tooltip.innerHTML = '';
 
-fetch(chrome.runtime.getURL("resources/data.json"))
-  .then((t) => t.json())
-  .then((t) => {
-    const e = t.find((t) => t.url === baseUrl),
-      o = e ? e.companies : ["Data Unavailable"];
-    o.forEach((t) => {
-      const e = document.createElement("div");
-      (e.className = "company"), (e.textContent = t), tooltip.appendChild(e);
-    });
-    
-    // Add expansion overlay for all company names
+  Promise.all([
+    fetch(chrome.runtime.getURL("resources/data.json")).then(res => res.json()),
+    fetch(chrome.runtime.getURL("resources/companyData.json")).then(res => res.json())
+  ]).then(([mainData, companyDataMap]) => {
+    const currentQuestion = mainData.find(q => q.url === baseUrl);
+    const companies = currentQuestion ? currentQuestion.companies : ["Data Unavailable"];
+
+    companies.forEach((companyName) => {
+      const companyDiv = document.createElement("div");
+      companyDiv.className = "company"
+      companyDiv.textContent = companyName
+      tooltip.appendChild(companyDiv);
+    })
+
     setTimeout(() => {
       let expansionOverlay = document.querySelector('.company-expansion-overlay');
       if (!expansionOverlay) {
@@ -34,7 +37,24 @@ fetch(chrome.runtime.getURL("resources/data.json"))
         document.body.appendChild(expansionOverlay);
       }
       
+      let questionsModal = document.querySelector('.company-questions-modal');
+      if (!questionsModal) {
+        questionsModal = document.createElement('div');
+        questionsModal.className = 'company-questions-modal';
+        questionsModal.style.cssText = `
+          display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+          background: rgba(0,0,0,0.75); z-index: 10000; align-items: center; justify-content: center;
+          backdrop-filter: blur(3px); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        `;
+        document.body.appendChild(questionsModal);
+        
+        questionsModal.addEventListener('click', (e) => {
+          if (e.target === questionsModal) questionsModal.style.display = 'none';
+        });
+      }
+      
       document.querySelectorAll('.company').forEach(company => {
+        const companyName = company.textContent;
         company.setAttribute('data-full-text', company.textContent);
         
         // Add hover event listeners to all companies
@@ -55,10 +75,41 @@ fetch(chrome.runtime.getURL("resources/data.json"))
         company.addEventListener('mouseleave', () => {
           expansionOverlay.style.display = 'none';
         });
+
+        company.addEventListener('click', ()=>{
+          if (companyName === "Data Unavailable") return;
+
+          const questionsList = companyDataMap[companyName] || [];
+
+          const filtered = questionsList.filter(q => q.url !== baseUrl);
+
+          const shuffled = filtered.sort(() => 0.5 - Math.random());
+
+          const topThree = shuffled.slice(0,3);
+
+          let questionsModal = document.querySelector('.company-questions-modal');
+          questionsModal.innerHTML = `
+            <div style="background: #282828; padding: 24px; border-radius: 12px; min-width: 320px; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column;">
+              <h2 style="margin-top: 0; margin-bottom: 16px; font-size: 18px; color: #fff; border-bottom: 1px solid #444; padding-bottom: 12px;">More from ${companyName}</h2>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                ${topThree.length > 0 
+                  ? topThree.map(q => `<a href="${q.url}" style="color: #60a5fa; text-decoration: none; padding: 12px; background: #333; border-radius: 8px; font-size: 15px; font-weight: 500;">${q.title}</a>`).join('')
+                  : '<p style="color: #aaa; margin: 0; font-size: 14px;">No other questions found.</p>'
+                }
+              </div>
+              <button class="close-modal-btn" style="margin-top: 24px; padding: 12px; background: #555; border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold;">Close</button>
+            </div>
+          `;
+          
+          questionsModal.querySelector('.close-modal-btn').addEventListener('click', () => {
+            questionsModal.style.display = 'none';
+          });
+
+          questionsModal.style.display = 'flex';
+        });
       });
     }, 100);
-  })
-  .catch((t) => console.error("Error fetching JSON:", t));
+  }).catch((t) => console.error("Error fetching JSON:", t));  
 }
 updateCompanies(window.location.href);
 
