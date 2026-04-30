@@ -25,7 +25,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["resources/icon.png", "resources/data.json"],
+      "resources": ["resources/icon.png", "resources/data.json", "resources/companyData.json"],
       "matches": ["https://leetcode.com/*"]
     }
   ],
